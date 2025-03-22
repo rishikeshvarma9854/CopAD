@@ -21,8 +21,12 @@ export function AdCopyGenerator() {
       try {
         // First, check if API key is valid
         const keyCheck = await fetch('/api/check-api-key');
+        
+        // Clone the response to avoid "body already read" error
+        const keyCheckClone = keyCheck.clone();
+        
         if (!keyCheck.ok) {
-          const errorText = await keyCheck.text();
+          const errorText = await keyCheckClone.text();
           throw new Error(`API key validation failed: ${errorText}`);
         }
         
@@ -41,15 +45,8 @@ export function AdCopyGenerator() {
         // If key is valid, proceed with the ad generation
         const response = await apiRequest('POST', '/api/generate-ad-copy', data);
         
-        let jsonResponse;
-        try {
-          jsonResponse = await response.json();
-        } catch (parseError) {
-          console.error("Error parsing API response:", parseError);
-          throw new Error("Failed to parse API response");
-        }
-        
-        return jsonResponse;
+        // Use the response from apiRequest which already handles error checking
+        return await response.json();
       } catch (error: any) {
         console.error("Error in mutation function:", error);
         throw error;

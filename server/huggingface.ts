@@ -121,10 +121,22 @@ Make sure to include exactly ${variations} variations and return ONLY the JSON a
     let cleanedText = generatedText.trim();
     
     // Sometimes the model adds backticks or other markdown formatting, clean that up
-    cleanedText = cleanedText.replace(/^\s*```json\s*/, '');
+    // Handle both ```json and plain ``` format
+    cleanedText = cleanedText.replace(/^\s*```(?:json)?\s*/, '');
     cleanedText = cleanedText.replace(/\s*```\s*$/, '');
     
+    // Additional cleanup for backticks at beginning of response
+    cleanedText = cleanedText.replace(/^`/, '');
+    cleanedText = cleanedText.replace(/`$/, '');
+    
+    console.log("Cleaned text before parsing:", cleanedText.substring(0, 100) + "...");
+    
     try {
+      // Extra safety - check for any non-standard JSON patterns
+      if (cleanedText.startsWith('`') && cleanedText.includes('[')) {
+        cleanedText = cleanedText.substring(cleanedText.indexOf('['));
+      }
+      
       const parsedResponse = JSON.parse(cleanedText);
       
       // Ensure we have an array
