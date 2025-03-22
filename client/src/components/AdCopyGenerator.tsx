@@ -19,34 +19,31 @@ export function AdCopyGenerator() {
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: GenerateAdCopyParams) => {
       try {
-        // First, check if API key is valid
-        const keyCheck = await fetch('/api/check-api-key');
+        // Simplified approach to avoid Response stream issues
+        // Skip pre-validation and let the API handle all validations
+        const response = await fetch('/api/generate-ad-copy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          credentials: 'include'
+        });
         
-        // Clone the response to avoid "body already read" error
-        const keyCheckClone = keyCheck.clone();
-        
-        if (!keyCheck.ok) {
-          const errorText = await keyCheckClone.text();
-          throw new Error(`API key validation failed: ${errorText}`);
+        // Process the response
+        if (!response.ok) {
+          // Try to get error details if available
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Error: ${response.status}`);
+          } else {
+            const text = await response.text();
+            throw new Error(`Error ${response.status}: ${text || response.statusText}`);
+          }
         }
         
-        let keyStatus;
-        try {
-          keyStatus = await keyCheck.json();
-        } catch (parseError) {
-          console.error("Error parsing API key check response:", parseError);
-          throw new Error("Failed to parse API key validation response");
-        }
-        
-        if (!keyStatus.success) {
-          throw new Error(keyStatus.message || "Hugging Face API key validation failed");
-        }
-        
-        // If key is valid, proceed with the ad generation
-        const response = await apiRequest('POST', '/api/generate-ad-copy', data);
-        
-        // Use the response from apiRequest which already handles error checking
-        return await response.json();
+        // If we get here, the response was successful
+        const result = await response.json();
+        return result;
       } catch (error: any) {
         console.error("Error in mutation function:", error);
         throw error;
