@@ -116,6 +116,18 @@ Make sure to include exactly ${variations} variations and return ONLY the JSON a
     if (!generatedText) {
       throw new Error("No content received from Hugging Face");
     }
+    
+    // Log the first 100 characters for debugging
+    console.log(`Raw response first 100 chars: "${generatedText.substring(0, 100).replace(/\n/g, '\\n')}..."`);
+    
+    // Log character codes to identify invisible characters (simpler approach)
+    const firstChars = generatedText.substring(0, 20);
+    const charCodes = [];
+    for (let i = 0; i < firstChars.length; i++) {
+      charCodes.push(firstChars.charCodeAt(i));
+    }
+    console.log(`Character codes for first 20 chars: ${JSON.stringify(charCodes)}`);
+    
 
     // Clean up the response if needed
     let cleanedText = generatedText.trim();
@@ -129,12 +141,23 @@ Make sure to include exactly ${variations} variations and return ONLY the JSON a
     cleanedText = cleanedText.replace(/^`/, '');
     cleanedText = cleanedText.replace(/`$/, '');
     
+    // Find the first open bracket (beginning of JSON array)
+    const jsonStartIndex = cleanedText.indexOf('[');
+    if (jsonStartIndex > 0) {
+      // If there are any characters before the first '[', remove them
+      cleanedText = cleanedText.substring(jsonStartIndex);
+    }
+    
+    // Remove any other non-standard characters that could appear at the beginning
+    // This will catch things like 'k;', special characters, etc.
+    cleanedText = cleanedText.replace(/^[^[\s{]*/g, '');
+    
     console.log("Cleaned text before parsing:", cleanedText.substring(0, 100) + "...");
     
     try {
-      // Extra safety - check for any non-standard JSON patterns
-      if (cleanedText.startsWith('`') && cleanedText.includes('[')) {
-        cleanedText = cleanedText.substring(cleanedText.indexOf('['));
+      // Extra safety check - ensure we're starting with a JSON array
+      if (!cleanedText.startsWith('[')) {
+        throw new Error("Response does not contain a JSON array");
       }
       
       const parsedResponse = JSON.parse(cleanedText);
