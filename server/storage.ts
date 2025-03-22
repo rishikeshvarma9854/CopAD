@@ -1,8 +1,8 @@
 import { adCopies, type AdCopy, type InsertAdCopy, users, type User, type InsertUser } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
-// modify the interface with any CRUD methods
-// you might need
-
+// Maintain the same interface
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -15,77 +15,58 @@ export interface IStorage {
   clearAdCopyHistory(): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private adCopiesMap: Map<number, AdCopy>;
-  userCurrentId: number;
-  adCopyCurrentId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.adCopiesMap = new Map();
-    this.userCurrentId = 1;
-    this.adCopyCurrentId = 1;
-  }
-
+// Rewrite storage implementation to use PostgreSQL via Drizzle
+export class DatabaseStorage implements IStorage {
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userCurrentId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   // Ad copy methods
   async createAdCopy(insertAdCopy: InsertAdCopy): Promise<AdCopy> {
-    const id = this.adCopyCurrentId++;
-    const createdAt = new Date();
-    
-    // Handle optional fields explicitly to satisfy TypeScript
-    const adCopy: AdCopy = { 
-      id, 
-      createdAt,
+    // Current timestamp will be automatically handled by PostgreSQL
+    const [adCopy] = await db.insert(adCopies).values({
       productName: insertAdCopy.productName,
       brandName: insertAdCopy.brandName,
       productDescription: insertAdCopy.productDescription,
-      keyFeatures: insertAdCopy.keyFeatures ?? null,
-      ageRange: insertAdCopy.ageRange ?? null,
-      gender: insertAdCopy.gender ?? null,
-      interests: insertAdCopy.interests ?? null,
+      keyFeatures: insertAdCopy.keyFeatures,
+      ageRange: insertAdCopy.ageRange,
+      gender: insertAdCopy.gender,
+      interests: insertAdCopy.interests,
       tone: insertAdCopy.tone,
       platform: insertAdCopy.platform,
       variations: insertAdCopy.variations ?? 3,
       generatedCopies: insertAdCopy.generatedCopies
-    };
+    }).returning();
     
-    this.adCopiesMap.set(id, adCopy);
     return adCopy;
   }
 
   async getAdCopyById(id: number): Promise<AdCopy | undefined> {
-    return this.adCopiesMap.get(id);
+    const [adCopy] = await db.select().from(adCopies).where(eq(adCopies.id, id));
+    return adCopy;
   }
 
   async getAdCopyHistory(): Promise<AdCopy[]> {
     // Return sorted by creation date (newest first)
-    return Array.from(this.adCopiesMap.values()).sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-    );
+    return await db.select().from(adCopies).orderBy(desc(adCopies.createdAt));
   }
 
   async clearAdCopyHistory(): Promise<void> {
-    this.adCopiesMap.clear();
+    await db.delete(adCopies);
   }
 }
 
-export const storage = new MemStorage();
+// Export a new DatabaseStorage instance
+export const storage = new DatabaseStorage();

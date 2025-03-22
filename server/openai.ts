@@ -7,8 +7,46 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+export async function validateApiKey(): Promise<{ valid: boolean; message?: string }> {
+  try {
+    // Make a minimal API call to validate the key
+    await openai.models.list({ limit: 1 });
+    return { valid: true };
+  } catch (error: any) {
+    console.error("OpenAI API key validation error:", error);
+    
+    let message = "Failed to validate OpenAI API key";
+    
+    // Specific OpenAI error handling
+    if (error?.status === 401) {
+      return { 
+        valid: false, 
+        message: "Invalid API key. Please check your API key and try again." 
+      };
+    } else if (error?.status === 429) {
+      return { 
+        valid: false, 
+        message: "OpenAI API rate limit exceeded. Please try again later or update your API key." 
+      };
+    } else if (error?.error?.code === 'insufficient_quota') {
+      return { 
+        valid: false, 
+        message: "OpenAI API quota exceeded. Please check your API key billing details or update to a new key." 
+      };
+    }
+    
+    return { valid: false, message };
+  }
+}
+
 export async function generateAdCopy(params: GenerateAdCopyParams): Promise<GeneratedAdCopy[]> {
   try {
+    // Validate API key before making the main request
+    const keyValidation = await validateApiKey();
+    if (!keyValidation.valid) {
+      throw new Error(keyValidation.message || "Invalid OpenAI API key");
+    }
+    
     const {
       productName,
       brandName,
@@ -49,6 +87,8 @@ export async function generateAdCopy(params: GenerateAdCopyParams): Promise<Gene
       ]
     `;
 
+    console.log("Calling OpenAI API to generate ad copy...");
+    
     // Call the OpenAI API to generate ad copy
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // Using the newest model
@@ -67,6 +107,8 @@ export async function generateAdCopy(params: GenerateAdCopyParams): Promise<Gene
       max_tokens: 1500, // Adjust based on the length of response needed
     });
 
+    console.log("OpenAI API response received successfully");
+    
     // Parse the response
     const content = response.choices[0].message.content;
     if (!content) {
@@ -77,6 +119,7 @@ export async function generateAdCopy(params: GenerateAdCopyParams): Promise<Gene
     
     // Ensure we have the expected array format
     if (!Array.isArray(parsedResponse)) {
+      console.log("Response format:", parsedResponse);
       if (parsedResponse.adCopies && Array.isArray(parsedResponse.adCopies)) {
         return parsedResponse.adCopies;
       }
@@ -88,8 +131,16 @@ export async function generateAdCopy(params: GenerateAdCopyParams): Promise<Gene
     console.error("Error generating ad copy:", error);
     
     // Specific error handling for OpenAI API quota errors
-    if (error?.status === 429 && error?.error?.code === 'insufficient_quota') {
-      throw new Error('OpenAI API quota exceeded. Please check your API key billing details.');
+    if (error?.status === 429) {
+      if (error?.error?.code === 'insufficient_quota') {
+        throw new Error('OpenAI API quota exceeded. Please check your API key billing details or update to a new key.');
+      }
+      throw new Error('OpenAI API rate limit exceeded. Please try again later.');
+    }
+    
+    // Handle authentication errors
+    if (error?.status === 401) {
+      throw new Error('Invalid OpenAI API key. Please check your API key and try again.');
     }
     
     // Handle other API-related errors

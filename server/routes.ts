@@ -1,12 +1,27 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { generateAdCopy } from "./openai";
+import { generateAdCopy, validateApiKey } from "./openai";
 import { generateAdCopySchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // API route to check OpenAI API key status
+  app.get("/api/check-api-key", async (req, res) => {
+    try {
+      const validation = await validateApiKey();
+      return res.json({ 
+        success: validation.valid, 
+        message: validation.message || (validation.valid ? "API key is valid" : "API key validation failed")
+      });
+    } catch (error: any) {
+      return res.status(500).json({ 
+        success: false, 
+        message: error.message || "Failed to validate API key" 
+      });
+    }
+  });
   // API route to generate ad copy
   app.post("/api/generate-ad-copy", async (req, res) => {
     try {
