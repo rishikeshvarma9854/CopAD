@@ -14,12 +14,29 @@ export function AdCopyGenerator() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: GenerateAdCopyParams) => {
-      const response = await apiRequest('POST', '/api/generate-ad-copy', data);
-      return response.json();
+      try {
+        // First, check if API key is valid
+        const keyCheck = await fetch('/api/check-api-key');
+        const keyStatus = await keyCheck.json();
+        
+        if (!keyStatus.success) {
+          throw new Error(keyStatus.message || "OpenAI API key validation failed");
+        }
+        
+        // If key is valid, proceed with the ad generation
+        const response = await apiRequest('POST', '/api/generate-ad-copy', data);
+        return response.json();
+      } catch (error: any) {
+        console.error("Error in mutation function:", error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
+      setErrorMessage(null);
       if (data.success) {
         setGeneratedCopies(data.data.copies);
         queryClient.invalidateQueries({ queryKey: ['/api/ad-copy-history'] });
@@ -28,43 +45,46 @@ export function AdCopyGenerator() {
           description: "Ad copies generated successfully.",
         });
       } else {
+        const message = data.message || "Failed to generate ad copies";
+        setErrorMessage(message);
         toast({
           title: "Error",
-          description: data.message || "Failed to generate ad copies",
+          description: message,
           variant: "destructive",
         });
       }
     },
-    onError: (error: any) => {
-      let errorMessage = "Failed to generate ad copies. Please try again.";
+    onError: async (error: any) => {
+      console.error("Mutation error:", error);
+      let message = "Failed to generate ad copies. Please try again later.";
       
-      // Check if the error has a response with JSON data
-      if (error?.response) {
+      // Handle fetch responses
+      if (error instanceof Response || error?.response instanceof Response) {
+        const response = error instanceof Response ? error : error.response;
         try {
-          // Try to parse the error response
-          error.response.json().then((data: any) => {
-            if (data?.message && data.message.includes('OpenAI API quota exceeded')) {
-              errorMessage = "Your OpenAI API key has exceeded its quota. Please check your billing details or use a different API key.";
-            } else if (data?.message) {
-              errorMessage = data.message;
-            }
-            
-            toast({
-              title: "API Error",
-              description: errorMessage,
-              variant: "destructive",
-            });
-          });
-          return; // Return early since we'll handle the toast in the promise
+          const errorData = await response.json();
+          if (errorData?.message) {
+            message = errorData.message;
+          }
         } catch (e) {
-          // If parsing fails, fall back to default message
-          console.error("Error parsing error response:", e);
+          console.error("Failed to parse error response:", e);
         }
+      } else if (error instanceof Error) {
+        // Handle standard JS errors
+        message = error.message;
       }
       
+      // Set more user-friendly messages for common OpenAI errors
+      if (message.includes('quota exceeded') || message.includes('rate limit')) {
+        message = "The OpenAI API has reached its quota limit. Please try again later.";
+      } else if (message.includes('invalid API key')) {
+        message = "Invalid OpenAI API key. Please update your API key in the environment settings.";
+      }
+      
+      setErrorMessage(message);
       toast({
-        title: "Error",
-        description: errorMessage,
+        title: "Generation Failed",
+        description: message,
         variant: "destructive",
       });
     },
@@ -81,7 +101,7 @@ export function AdCopyGenerator() {
     mutate(data);
   };
 
-  const shouldShowResults = isPending || generatedCopies;
+  const shouldShowResults = isPending || generatedCopies || errorMessage;
 
   return (
     <>
@@ -107,6 +127,31 @@ export function AdCopyGenerator() {
             )}
           </div>
           
+          {/* Error state */}
+          {errorMessage && !isPending && (
+            <div className="py-6 px-4 border border-red-200 bg-red-50 rounded-lg flex flex-col items-center justify-center text-center">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-10 w-10 text-red-500 mb-3" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="text-lg font-medium text-red-800 mb-2">Generation Failed</h3>
+              <p className="text-sm text-red-700">{errorMessage}</p>
+              <Button 
+                onClick={() => setErrorMessage(null)} 
+                variant="outline" 
+                className="mt-4"
+                size="sm"
+              >
+                Dismiss
+              </Button>
+            </div>
+          )}
+          
           {/* Loading state */}
           {isPending && (
             <div className="py-10 flex flex-col items-center justify-center">
@@ -116,7 +161,7 @@ export function AdCopyGenerator() {
           )}
 
           {/* Generated copies */}
-          {!isPending && generatedCopies && (
+          {!isPending && generatedCopies && !errorMessage && (
             <div className="space-y-6">
               {generatedCopies.map((copy, index) => (
                 <AdCopyCard key={index} adCopy={copy} />
