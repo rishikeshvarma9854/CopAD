@@ -24,7 +24,7 @@ export function AdCopyGenerator() {
         const keyStatus = await keyCheck.json();
         
         if (!keyStatus.success) {
-          throw new Error(keyStatus.message || "OpenAI API key validation failed");
+          throw new Error(keyStatus.message || "Hugging Face API key validation failed");
         }
         
         // If key is valid, proceed with the ad generation
@@ -74,11 +74,11 @@ export function AdCopyGenerator() {
         message = error.message;
       }
       
-      // Set more user-friendly messages for common OpenAI errors
+      // Set more user-friendly messages for common Hugging Face errors
       if (message.includes('quota exceeded') || message.includes('rate limit')) {
-        message = "The OpenAI API has reached its quota limit. Please try again later.";
-      } else if (message.includes('invalid API key')) {
-        message = "Invalid OpenAI API key. Please update your API key in the environment settings.";
+        message = "The Hugging Face API has reached its rate limit. Please try again later.";
+      } else if (message.includes('invalid API key') || message.includes('Unauthorized')) {
+        message = "Invalid Hugging Face API key. Please update your API key in the environment settings.";
       }
       
       setErrorMessage(message);

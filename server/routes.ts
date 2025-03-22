@@ -1,13 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { generateAdCopy, validateApiKey } from "./openai";
+// Import from huggingface instead of openai 
+import { generateAdCopy, validateApiKey } from "./huggingface";
 import { generateAdCopySchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // API route to check OpenAI API key status
+  // API route to check Hugging Face API key status
   app.get("/api/check-api-key", async (req, res) => {
     try {
       const validation = await validateApiKey();
@@ -28,7 +29,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate request body
       const validated = generateAdCopySchema.parse(req.body);
       
-      // Generate ad copy using OpenAI
+      // Generate ad copy using Hugging Face
       const generatedCopies = await generateAdCopy(validated);
       
       // Store the generated ad copy in the database
