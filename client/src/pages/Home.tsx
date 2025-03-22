@@ -1,5 +1,6 @@
 import { AdCopyGenerator } from "@/components/AdCopyGenerator";
 import { AdCopyHistory } from "@/components/AdCopyHistory";
+import { ApiKeyStatus } from "@/components/ApiKeyStatus";
 import { Layers } from "lucide-react";
 
 export default function Home() {
@@ -25,6 +26,9 @@ export default function Home() {
 
       {/* Main content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* API Key Status */}
+        <ApiKeyStatus />
+        
         <div className="grid grid-cols-1 gap-8">
           {/* Generator Form */}
           <AdCopyGenerator />
@@ -43,7 +47,7 @@ export default function Home() {
               <span className="ml-2 text-sm text-gray-500">Ad Copy Generator</span>
             </div>
             <div className="mt-4 md:mt-0">
-              <p className="text-sm text-gray-500">Powered by OpenAI API • <a href="#" className="text-primary hover:text-primary/80">Terms of Service</a></p>
+              <p className="text-sm text-gray-500">Powered by Hugging Face API • <a href="#" className="text-primary hover:text-primary/80">Terms of Service</a></p>
             </div>
           </div>
         </div>
