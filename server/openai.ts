@@ -84,8 +84,20 @@ export async function generateAdCopy(params: GenerateAdCopyParams): Promise<Gene
     }
 
     return parsedResponse;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating ad copy:", error);
-    throw new Error(`Failed to generate ad copy: ${error.message}`);
+    
+    // Specific error handling for OpenAI API quota errors
+    if (error?.status === 429 && error?.error?.code === 'insufficient_quota') {
+      throw new Error('OpenAI API quota exceeded. Please check your API key billing details.');
+    }
+    
+    // Handle other API-related errors
+    if (error?.status) {
+      throw new Error(`OpenAI API error (${error.status}): ${error.message || 'Unknown error'}`);
+    }
+    
+    // Generic error handler
+    throw new Error(`Failed to generate ad copy: ${error.message || 'Unknown error'}`);
   }
 }

@@ -30,7 +30,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           copies: generatedCopies
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof ZodError) {
         const validationError = fromZodError(error);
         return res.status(400).json({ 
@@ -41,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       return res.status(500).json({ 
         success: false, 
-        message: (error as Error).message || "Failed to generate ad copy" 
+        message: error.message || "Failed to generate ad copy" 
       });
     }
   });
@@ -111,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           copies: JSON.parse(adCopy.generatedCopies)
         } 
       });
-    } catch (error) {
+    } catch (error: any) {
       return res.status(500).json({ 
         success: false, 
         message: error.message || "Failed to fetch ad copy" 

@@ -35,10 +35,36 @@ export function AdCopyGenerator() {
         });
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      let errorMessage = "Failed to generate ad copies. Please try again.";
+      
+      // Check if the error has a response with JSON data
+      if (error?.response) {
+        try {
+          // Try to parse the error response
+          error.response.json().then((data: any) => {
+            if (data?.message && data.message.includes('OpenAI API quota exceeded')) {
+              errorMessage = "Your OpenAI API key has exceeded its quota. Please check your billing details or use a different API key.";
+            } else if (data?.message) {
+              errorMessage = data.message;
+            }
+            
+            toast({
+              title: "API Error",
+              description: errorMessage,
+              variant: "destructive",
+            });
+          });
+          return; // Return early since we'll handle the toast in the promise
+        } catch (e) {
+          // If parsing fails, fall back to default message
+          console.error("Error parsing error response:", e);
+        }
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to generate ad copies. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },

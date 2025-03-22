@@ -50,7 +50,24 @@ export class MemStorage implements IStorage {
   async createAdCopy(insertAdCopy: InsertAdCopy): Promise<AdCopy> {
     const id = this.adCopyCurrentId++;
     const createdAt = new Date();
-    const adCopy: AdCopy = { ...insertAdCopy, id, createdAt };
+    
+    // Handle optional fields explicitly to satisfy TypeScript
+    const adCopy: AdCopy = { 
+      id, 
+      createdAt,
+      productName: insertAdCopy.productName,
+      brandName: insertAdCopy.brandName,
+      productDescription: insertAdCopy.productDescription,
+      keyFeatures: insertAdCopy.keyFeatures ?? null,
+      ageRange: insertAdCopy.ageRange ?? null,
+      gender: insertAdCopy.gender ?? null,
+      interests: insertAdCopy.interests ?? null,
+      tone: insertAdCopy.tone,
+      platform: insertAdCopy.platform,
+      variations: insertAdCopy.variations ?? 3,
+      generatedCopies: insertAdCopy.generatedCopies
+    };
+    
     this.adCopiesMap.set(id, adCopy);
     return adCopy;
   }
