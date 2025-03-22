@@ -21,7 +21,18 @@ export function AdCopyGenerator() {
       try {
         // First, check if API key is valid
         const keyCheck = await fetch('/api/check-api-key');
-        const keyStatus = await keyCheck.json();
+        if (!keyCheck.ok) {
+          const errorText = await keyCheck.text();
+          throw new Error(`API key validation failed: ${errorText}`);
+        }
+        
+        let keyStatus;
+        try {
+          keyStatus = await keyCheck.json();
+        } catch (parseError) {
+          console.error("Error parsing API key check response:", parseError);
+          throw new Error("Failed to parse API key validation response");
+        }
         
         if (!keyStatus.success) {
           throw new Error(keyStatus.message || "Hugging Face API key validation failed");
@@ -29,7 +40,16 @@ export function AdCopyGenerator() {
         
         // If key is valid, proceed with the ad generation
         const response = await apiRequest('POST', '/api/generate-ad-copy', data);
-        return response.json();
+        
+        let jsonResponse;
+        try {
+          jsonResponse = await response.json();
+        } catch (parseError) {
+          console.error("Error parsing API response:", parseError);
+          throw new Error("Failed to parse API response");
+        }
+        
+        return jsonResponse;
       } catch (error: any) {
         console.error("Error in mutation function:", error);
         throw error;
@@ -58,19 +78,32 @@ export function AdCopyGenerator() {
       console.error("Mutation error:", error);
       let message = "Failed to generate ad copies. Please try again later.";
       
+      // Error is a JSON parse error
+      if (error.name === 'SyntaxError' && error.message.includes('Unexpected token')) {
+        message = "Received invalid response from server. Please try again.";
+        console.error("JSON Parse Error:", error.message);
+      }
       // Handle fetch responses
-      if (error instanceof Response || error?.response instanceof Response) {
+      else if (error instanceof Response || error?.response instanceof Response) {
         const response = error instanceof Response ? error : error.response;
         try {
-          const errorData = await response.json();
-          if (errorData?.message) {
-            message = errorData.message;
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            if (errorData?.message) {
+              message = errorData.message;
+            }
+          } else {
+            const text = await response.text();
+            console.error("Non-JSON error response:", text);
+            message = `Error ${response.status}: ${response.statusText}`;
           }
         } catch (e) {
           console.error("Failed to parse error response:", e);
         }
-      } else if (error instanceof Error) {
-        // Handle standard JS errors
+      } 
+      // Handle standard JS errors
+      else if (error instanceof Error) {
         message = error.message;
       }
       
@@ -79,6 +112,8 @@ export function AdCopyGenerator() {
         message = "The Hugging Face API has reached its rate limit. Please try again later.";
       } else if (message.includes('invalid API key') || message.includes('Unauthorized')) {
         message = "Invalid Hugging Face API key. Please update your API key in the environment settings.";
+      } else if (message.includes('Unexpected token') && message.includes('<!DOCTYPE')) {
+        message = "Server error: Received HTML instead of JSON. Please check server logs.";
       }
       
       setErrorMessage(message);
