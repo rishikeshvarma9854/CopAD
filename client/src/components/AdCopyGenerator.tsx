@@ -19,14 +19,26 @@ export function AdCopyGenerator() {
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: GenerateAdCopyParams) => {
       try {
-        // Simplified approach to avoid Response stream issues
-        // Skip pre-validation and let the API handle all validations
-        const response = await fetch('/api/ad-generator', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-          credentials: 'include'
-        });
+        // Try both endpoints for maximum reliability
+        let response;
+        try {
+          // First try the ad-generator endpoint
+          response = await fetch('/api/ad-generator', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+            credentials: 'include'
+          });
+        } catch (error) {
+          console.log('First endpoint failed, trying fallback');
+          // If that fails, try the generate-ad-copy endpoint
+          response = await fetch('/api/generate-ad-copy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+            credentials: 'include'
+          });
+        }
         
         // Process the response
         if (!response.ok) {
