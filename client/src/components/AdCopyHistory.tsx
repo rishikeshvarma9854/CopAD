@@ -44,22 +44,9 @@ export function AdCopyHistory() {
     queryKey: ['/api/ad-copy-history'],
     queryFn: async () => {
       try {
-        // Get history from localStorage first
+        // Always use localStorage data first
         const historyData = getHistory();
-        
-        // If we have local history, use it
-        if (historyData && historyData.length > 0) {
-          return { success: true, data: historyData };
-        }
-        
-        // Otherwise fetch from API (which will return mock data)
-        const response = await fetch('/api/ad-copy-history');
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch history');
-        }
-        
-        return await response.json();
+        return { success: true, data: historyData };
       } catch (error) {
         console.error('Error fetching history:', error);
         // Return empty data on error
@@ -75,12 +62,19 @@ export function AdCopyHistory() {
       // Clear localStorage
       clearHistory();
       
+      // Force refresh the UI
+      queryClient.invalidateQueries({ queryKey: ['/api/ad-copy-history'] });
+      
       // Also call API to clear server-side history if needed
-      const response = await apiRequest('DELETE', '/api/ad-copy-history', undefined);
-      return response.json();
+      try {
+        await apiRequest('DELETE', '/api/ad-copy-history', undefined);
+      } catch (error) {
+        console.error('Error clearing server history:', error);
+      }
+      
+      return { success: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/ad-copy-history'] });
       toast({
         title: "History cleared",
         description: "Your ad copy history has been cleared.",

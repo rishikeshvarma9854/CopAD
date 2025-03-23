@@ -1,5 +1,5 @@
 // Consistent storage key with version for future changes
-const STORAGE_KEY = 'adCopyHistory_v1';
+const STORAGE_KEY = 'adCopyHistory_v2';
 
 // Type definitions
 export interface AdCopy {
@@ -19,8 +19,25 @@ export interface HistoryItem {
   copies: AdCopy[];
 }
 
+// Check if localStorage is available
+const isLocalStorageAvailable = () => {
+  try {
+    const testKey = '__test__';
+    localStorage.setItem(testKey, testKey);
+    localStorage.removeItem(testKey);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
 // Save history to localStorage
 export function saveHistory(item: HistoryItem): void {
+  if (!isLocalStorageAvailable()) {
+    console.error('localStorage is not available');
+    return;
+  }
+  
   try {
     // Get existing history
     const history = getHistory();
@@ -33,6 +50,7 @@ export function saveHistory(item: HistoryItem): void {
     
     // Save back to localStorage
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedHistory));
+    console.log('History saved successfully', updatedHistory);
   } catch (error) {
     console.error('Error saving history:', error);
   }
@@ -40,11 +58,18 @@ export function saveHistory(item: HistoryItem): void {
 
 // Get history from localStorage
 export function getHistory(): HistoryItem[] {
+  if (!isLocalStorageAvailable()) {
+    console.error('localStorage is not available');
+    return [];
+  }
+  
   try {
     const historyStr = localStorage.getItem(STORAGE_KEY);
     if (!historyStr) return [];
     
-    return JSON.parse(historyStr);
+    const parsedHistory = JSON.parse(historyStr);
+    console.log('Retrieved history:', parsedHistory);
+    return parsedHistory;
   } catch (error) {
     console.error('Error getting history:', error);
     return [];
@@ -53,8 +78,14 @@ export function getHistory(): HistoryItem[] {
 
 // Clear history from localStorage
 export function clearHistory(): void {
+  if (!isLocalStorageAvailable()) {
+    console.error('localStorage is not available');
+    return;
+  }
+  
   try {
     localStorage.removeItem(STORAGE_KEY);
+    console.log('History cleared successfully');
   } catch (error) {
     console.error('Error clearing history:', error);
   }
