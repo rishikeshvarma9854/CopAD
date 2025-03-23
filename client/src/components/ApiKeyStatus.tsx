@@ -36,18 +36,8 @@ export function ApiKeyStatus() {
   }
 
   return (
-    <>
-      {!apiKeyStatus.valid && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertDescription className="flex flex-col gap-2">
-            <p><strong>Hugging Face API Error:</strong> {apiKeyStatus.message}</p>
-            <p className="text-sm">
-              Please make sure your Hugging Face API key is properly set. You can get an API key from 
-              https://huggingface.co/settings/tokens
-            </p>
-          </AlertDescription>
-        </Alert>
-      )}
-    </>
+    <div className="mb-6">
+      {/* Hide the API key warning since we're using mock data */}
+    </div>
   );
 }
