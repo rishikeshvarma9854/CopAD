@@ -31,9 +31,8 @@ export default defineConfig({
   },
   root: path.resolve(__dirname, "client"),
   build: {
-    outDir: path.resolve(__dirname, "dist/public"),
+    outDir: path.resolve(__dirname, "dist"),
     emptyOutDir: true,
-    // Add sourcemap for better debugging
     sourcemap: true,
     // Ensure Vercel can handle the build output
     rollupOptions: {
