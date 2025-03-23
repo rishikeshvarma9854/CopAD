@@ -74,7 +74,7 @@ export function AdCopyGenerator() {
       
       // Error is a JSON parse error
       if (error.name === 'SyntaxError' && error.message.includes('Unexpected token')) {
-        message = "Received invalid response from server. Please try again.";
+        message = "Hugging Face API Error: Invalid API key or insufficient permissions. Please check your API key in the environment settings.";
         console.error("JSON Parse Error:", error.message);
       }
       // Handle fetch responses
