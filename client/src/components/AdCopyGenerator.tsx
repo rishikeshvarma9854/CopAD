@@ -21,7 +21,7 @@ export function AdCopyGenerator() {
       try {
         // Simplified approach to avoid Response stream issues
         // Skip pre-validation and let the API handle all validations
-        const response = await fetch('/api/generate-ad-copy', {
+        const response = await fetch('/api/ad-generator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
