@@ -7,6 +7,7 @@ import { GenerateAdCopyParams, GeneratedAdCopy } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, PlusCircle } from "lucide-react";
 import { Button } from "./ui/button";
+import { saveHistory, createHistoryItem } from "@/lib/historyStorage";
 
 export function AdCopyGenerator() {
   const [generatedCopies, setGeneratedCopies] = useState<GeneratedAdCopy[] | null>(null);
@@ -68,30 +69,9 @@ export function AdCopyGenerator() {
         
         // Save to localStorage history
         try {
-          // Get existing history from localStorage
-          const existingHistoryStr = localStorage.getItem('adCopyHistory') || '[]';
-          const existingHistory = JSON.parse(existingHistoryStr);
-          
-          // Create new history entry
-          const newEntry = {
-            id: Date.now(),
-            productName: variables.productName,
-            brandName: variables.brandName,
-            platform: variables.platform,
-            tone: variables.tone,
-            ageRange: variables.ageRange,
-            createdAt: new Date().toISOString(),
-            copies: data.data.copies
-          };
-          
-          // Add to beginning of history
-          existingHistory.unshift(newEntry);
-          
-          // Keep only the last 10 items
-          const updatedHistory = existingHistory.slice(0, 10);
-          
-          // Save back to localStorage
-          localStorage.setItem('adCopyHistory', JSON.stringify(updatedHistory));
+          // Create and save history item
+          const historyItem = createHistoryItem(data, variables);
+          saveHistory(historyItem);
           
           // Invalidate queries to refresh history
           queryClient.invalidateQueries({ queryKey: ['/api/ad-copy-history'] });

@@ -1,11 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { AdCopyCard } from "./AdCopyCard";
 import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PlusCircle, RefreshCw, ChevronDown } from "lucide-react";
 import { Button } from "./ui/button";
+import { Loader2, Trash2, RefreshCw, ChevronDown, PlusCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { AdCopyCard } from "./AdCopyCard";
+import { getHistory, clearHistory } from "@/lib/historyStorage";
 
 type HistoryItem = {
   id: number;
@@ -44,21 +45,15 @@ export function AdCopyHistory() {
     queryFn: async () => {
       try {
         // Get history from localStorage first
-        const localHistory = localStorage.getItem('adCopyHistory');
+        const historyData = getHistory();
         
         // If we have local history, use it
-        if (localHistory) {
-          const historyData = JSON.parse(localHistory);
+        if (historyData && historyData.length > 0) {
           return { success: true, data: historyData };
         }
         
         // Otherwise fetch from API (which will return mock data)
-        const response = await fetch('/api/ad-copy-history', {
-          headers: {
-            // Send localStorage history in headers if available
-            'x-client-history': localHistory || ''
-          }
-        });
+        const response = await fetch('/api/ad-copy-history');
         
         if (!response.ok) {
           throw new Error('Failed to fetch history');
@@ -75,10 +70,10 @@ export function AdCopyHistory() {
   });
 
   // Clear history mutation
-  const { mutate: clearHistory, isPending: isClearing } = useMutation({
+  const { mutate: clearHistoryMutation, isPending: isClearing } = useMutation({
     mutationFn: async () => {
       // Clear localStorage
-      localStorage.removeItem('adCopyHistory');
+      clearHistory();
       
       // Also call API to clear server-side history if needed
       const response = await apiRequest('DELETE', '/api/ad-copy-history', undefined);
@@ -149,7 +144,7 @@ export function AdCopyHistory() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => clearHistory()}
+            onClick={() => clearHistoryMutation()}
             disabled={isClearing}
             className="text-sm font-medium text-gray-500 hover:text-gray-700"
           >
