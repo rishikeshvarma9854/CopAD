@@ -120,6 +120,13 @@ Make sure to include exactly ${variations} variations and return ONLY the JSON a
     // Log the first 100 characters for debugging
     console.log(`Raw response first 100 chars: "${generatedText.substring(0, 100).replace(/\n/g, '\\n')}..."`);
     
+    // Check if the response looks like HTML (which would indicate an error page)
+    if (generatedText.includes('<!DOCTYPE html>') || generatedText.includes('<html>') || generatedText.includes('The page')) {
+      console.error('Received HTML instead of JSON from Hugging Face API');
+      console.error('First 200 characters:', generatedText.substring(0, 200));
+      throw new Error('Received an HTML error page from Hugging Face API. Please check your API key and model access.');
+    }
+    
     // Log character codes to identify invisible characters (simpler approach)
     const firstChars = generatedText.substring(0, 20);
     const charCodes = [];
