@@ -1,6 +1,6 @@
 export default function handler(req, res) {
   // Always return mock data without any API calls
-  const { productName = 'Product', brandName = 'Brand', productDescription = 'Description', platform = 'All', tone = 'Professional', ageRange = '25-34' } = req.body || {};
+  const { productName = 'Product', brandName = 'Brand', productDescription = 'Description', platform = 'All', tone = 'Professional', ageRange = '25-34', variations = 3 } = req.body || {};
   
   // Add randomization to ensure different content on regeneration
   const timestamp = Date.now();
@@ -39,23 +39,17 @@ export default function handler(req, res) {
     return array[(index + randomSeed) % array.length];
   };
   
-  const mockCopies = [
-    {
-      headline: getRandomItem(headlineTemplates, 0),
-      body: getRandomItem(bodyTemplates, 0),
+  // Generate the requested number of variations (capped at 10 for performance)
+  const numVariations = Math.min(Math.max(1, variations), 10);
+  const mockCopies = [];
+  
+  for (let i = 0; i < numVariations; i++) {
+    mockCopies.push({
+      headline: getRandomItem(headlineTemplates, i),
+      body: getRandomItem(bodyTemplates, i),
       platform
-    },
-    {
-      headline: getRandomItem(headlineTemplates, 3),
-      body: getRandomItem(bodyTemplates, 3),
-      platform
-    },
-    {
-      headline: getRandomItem(headlineTemplates, 7),
-      body: getRandomItem(bodyTemplates, 7),
-      platform
-    }
-  ];
+    });
+  }
 
   // In a real app, this would save to the database
   // For our mock implementation, we'll update the history in memory
