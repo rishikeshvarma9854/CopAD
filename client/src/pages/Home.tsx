@@ -12,7 +12,7 @@ export default function Home() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <Layers className="h-8 w-8 text-primary" />
-              <h1 className="ml-2 text-xl font-semibold text-gray-900">Creative Ad Copy Generator</h1>
+              <h1 className="ml-2 text-xl font-semibold text-gray-900">CopAd</h1>
             </div>
             {/* User avatar */}
             <div className="flex items-center">
