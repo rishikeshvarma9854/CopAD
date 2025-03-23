@@ -10,7 +10,7 @@ export default function handler(req, res) {
   }
 }
 
-// Mock history data
+// Default mock history data (only used if no localStorage data exists)
 export const mockHistory = [
   {
     id: 1,
@@ -53,37 +53,37 @@ export const mockHistory = [
 
 // GET handler for history
 function getHistory(req, res) {
-  // Return mock history data
-  return res.status(200).json({
-    success: true,
-    data: mockHistory
-  });
+  // Return data from client-side localStorage (sent in headers)
+  const clientHistory = req.headers['x-client-history'];
+  
+  if (clientHistory) {
+    try {
+      // Parse the client history from the header
+      const history = JSON.parse(clientHistory);
+      return res.status(200).json({
+        success: true,
+        data: history
+      });
+    } catch (error) {
+      // If parsing fails, return mock data
+      return res.status(200).json({
+        success: true,
+        data: mockHistory
+      });
+    }
+  } else {
+    // If no client history, return mock data
+    return res.status(200).json({
+      success: true,
+      data: mockHistory
+    });
+  }
 }
 
 // DELETE handler for clearing history
 function clearHistory(req, res) {
-  // In a real app, this would clear the database
-  // For mock, we just clear the array
-  mockHistory.length = 0;
-  
-  // Add one default item back
-  mockHistory.push({
-    id: Date.now(),
-    productName: 'Example Product',
-    brandName: 'Example Brand',
-    platform: 'All',
-    tone: 'Professional',
-    ageRange: '25-34',
-    createdAt: new Date().toISOString(),
-    copies: [
-      {
-        headline: 'Example Ad Copy',
-        body: 'This is an example ad copy after clearing history.',
-        platform: 'All'
-      }
-    ]
-  });
-  
+  // We'll rely on the client to clear localStorage
+  // Just return success
   return res.status(200).json({
     success: true,
     message: 'History cleared successfully'

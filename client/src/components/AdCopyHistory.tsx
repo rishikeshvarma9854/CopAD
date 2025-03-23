@@ -39,14 +39,48 @@ export function AdCopyHistory() {
   };
 
   // Fetch history data
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['/api/ad-copy-history'],
+    queryFn: async () => {
+      try {
+        // Get history from localStorage first
+        const localHistory = localStorage.getItem('adCopyHistory');
+        
+        // If we have local history, use it
+        if (localHistory) {
+          const historyData = JSON.parse(localHistory);
+          return { success: true, data: historyData };
+        }
+        
+        // Otherwise fetch from API (which will return mock data)
+        const response = await fetch('/api/ad-copy-history', {
+          headers: {
+            // Send localStorage history in headers if available
+            'x-client-history': localHistory || ''
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch history');
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching history:', error);
+        // Return empty data on error
+        return { success: true, data: [] };
+      }
+    },
     throwOnError: false,
   });
 
   // Clear history mutation
   const { mutate: clearHistory, isPending: isClearing } = useMutation({
     mutationFn: async () => {
+      // Clear localStorage
+      localStorage.removeItem('adCopyHistory');
+      
+      // Also call API to clear server-side history if needed
       const response = await apiRequest('DELETE', '/api/ad-copy-history', undefined);
       return response.json();
     },

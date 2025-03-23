@@ -60,11 +60,45 @@ export function AdCopyGenerator() {
         throw error;
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       setErrorMessage(null);
       if (data.success) {
+        // Save the generated copies to state
         setGeneratedCopies(data.data.copies);
-        queryClient.invalidateQueries({ queryKey: ['/api/ad-copy-history'] });
+        
+        // Save to localStorage history
+        try {
+          // Get existing history from localStorage
+          const existingHistoryStr = localStorage.getItem('adCopyHistory') || '[]';
+          const existingHistory = JSON.parse(existingHistoryStr);
+          
+          // Create new history entry
+          const newEntry = {
+            id: Date.now(),
+            productName: variables.productName,
+            brandName: variables.brandName,
+            platform: variables.platform,
+            tone: variables.tone,
+            ageRange: variables.ageRange,
+            createdAt: new Date().toISOString(),
+            copies: data.data.copies
+          };
+          
+          // Add to beginning of history
+          existingHistory.unshift(newEntry);
+          
+          // Keep only the last 10 items
+          const updatedHistory = existingHistory.slice(0, 10);
+          
+          // Save back to localStorage
+          localStorage.setItem('adCopyHistory', JSON.stringify(updatedHistory));
+          
+          // Invalidate queries to refresh history
+          queryClient.invalidateQueries({ queryKey: ['/api/ad-copy-history'] });
+        } catch (error) {
+          console.error('Error saving to history:', error);
+        }
+        
         toast({
           title: "Success!",
           description: "Ad copies generated successfully.",
