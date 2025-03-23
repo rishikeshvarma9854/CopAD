@@ -13,6 +13,7 @@ export default defineConfig({
     react(),
     runtimeErrorOverlay(),
     themePlugin(),
+    // Only include Replit-specific plugins in development
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
@@ -32,5 +33,15 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    // Add sourcemap for better debugging
+    sourcemap: true,
+    // Ensure Vercel can handle the build output
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
   },
+  // Add base path configuration for Vercel
+  base: "/",
 });
