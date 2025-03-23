@@ -11,7 +11,7 @@ export default function handler(req, res) {
 }
 
 // Mock history data
-const mockHistory = [
+export const mockHistory = [
   {
     id: 1,
     productName: 'Smart Watch',
@@ -63,7 +63,27 @@ function getHistory(req, res) {
 // DELETE handler for clearing history
 function clearHistory(req, res) {
   // In a real app, this would clear the database
-  // For mock, we just return success
+  // For mock, we just clear the array
+  mockHistory.length = 0;
+  
+  // Add one default item back
+  mockHistory.push({
+    id: Date.now(),
+    productName: 'Example Product',
+    brandName: 'Example Brand',
+    platform: 'All',
+    tone: 'Professional',
+    ageRange: '25-34',
+    createdAt: new Date().toISOString(),
+    copies: [
+      {
+        headline: 'Example Ad Copy',
+        body: 'This is an example ad copy after clearing history.',
+        platform: 'All'
+      }
+    ]
+  });
+  
   return res.status(200).json({
     success: true,
     message: 'History cleared successfully'
